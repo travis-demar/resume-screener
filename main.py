@@ -6,8 +6,9 @@ and sends Slack alerts for high-scoring candidates.
 """
 
 import os
+import sys
 import time
-import schedule
+from datetime import datetime
 from dotenv import load_dotenv
 
 from ashby_client import AshbyClient
@@ -25,9 +26,10 @@ LOOKBACK_HOURS = int(os.getenv("LOOKBACK_HOURS", "1"))
 
 def process_applications():
     """Fetch and process new job applications."""
-    print(f"\n{'='*50}")
-    print(f"Starting application processing run...")
-    print(f"{'='*50}")
+    print(f"\n{'='*50}", flush=True)
+    print(f"Starting application processing run...", flush=True)
+    print(f"Time: {datetime.utcnow().isoformat()}Z", flush=True)
+    print(f"{'='*50}", flush=True)
 
     try:
         # Initialize clients
@@ -40,9 +42,9 @@ def process_applications():
         score_threshold = scorer.get_score_threshold()
 
         # Fetch recent applications
-        print(f"Fetching applications from the last {LOOKBACK_HOURS} hour(s)...")
+        print(f"Fetching applications from the last {LOOKBACK_HOURS} hour(s)...", flush=True)
         applications = ashby.get_recent_applications(hours=LOOKBACK_HOURS)
-        print(f"Found {len(applications)} application(s)")
+        print(f"Found {len(applications)} application(s)", flush=True)
 
         new_count = 0
         alert_count = 0
@@ -52,13 +54,13 @@ def process_applications():
 
             # Skip if already processed
             if tracker.is_processed(app_id):
-                print(f"  Skipping {app_id} (already processed)")
+                print(f"  Skipping {app_id} (already processed)", flush=True)
                 continue
 
             new_count += 1
 
             # Get full application details
-            print(f"\nProcessing application {app_id}...")
+            print(f"\nProcessing application {app_id}...", flush=True)
             details = ashby.get_application_details(app)
 
             candidate_name = details["candidate_name"]
@@ -67,27 +69,27 @@ def process_applications():
             email = details["candidate_email"]
             resume_text = details["resume_text"]
 
-            print(f"  Candidate: {candidate_name}")
-            print(f"  Job: {job_title}")
+            print(f"  Candidate: {candidate_name}", flush=True)
+            print(f"  Job: {job_title}", flush=True)
 
             # Score the resume
-            print(f"  Scoring resume...")
+            print(f"  Scoring resume...", flush=True)
             scores = scorer.score_resume(resume_text, job_title, candidate_name)
             total_score = scores.get("total_score", 0)
 
             # Log scores
-            print(f"  Scores:")
-            print(f"    Technical/AI: {scores.get('technical_ai_ability', 'N/A')}/10")
-            print(f"    Recruiting: {scores.get('recruiting_experience', 'N/A')}/10")
-            print(f"    Startup/VC: {scores.get('startup_vc_background', 'N/A')}/10")
-            print(f"    Builder: {scores.get('builder_mentality', 'N/A')}/10")
-            print(f"    Healthcare: {scores.get('healthcare_venture_experience', 'N/A')}/10")
-            print(f"  Total Score: {total_score}/10")
-            print(f"  Assessment: {scores.get('fit_summary', 'N/A')}")
+            print(f"  Scores:", flush=True)
+            print(f"    Technical/AI: {scores.get('technical_ai_ability', 'N/A')}/10", flush=True)
+            print(f"    Recruiting: {scores.get('recruiting_experience', 'N/A')}/10", flush=True)
+            print(f"    Startup/VC: {scores.get('startup_vc_background', 'N/A')}/10", flush=True)
+            print(f"    Builder: {scores.get('builder_mentality', 'N/A')}/10", flush=True)
+            print(f"    Healthcare: {scores.get('healthcare_venture_experience', 'N/A')}/10", flush=True)
+            print(f"  Total Score: {total_score}/10", flush=True)
+            print(f"  Assessment: {scores.get('fit_summary', 'N/A')}", flush=True)
 
             # Decide action based on score
             if total_score >= score_threshold:
-                print(f"  *** HIGH SCORE - Sending Slack alert...")
+                print(f"  *** HIGH SCORE - Sending Slack alert...", flush=True)
                 success = slack.send_candidate_alert(
                     candidate_name=candidate_name,
                     job_title=job_title,
@@ -98,11 +100,11 @@ def process_applications():
                 recommendation = "alert"
                 if success:
                     alert_count += 1
-                    print(f"  Slack alert sent successfully!")
+                    print(f"  Slack alert sent successfully!", flush=True)
                 else:
-                    print(f"  Failed to send Slack alert")
+                    print(f"  Failed to send Slack alert", flush=True)
             else:
-                print(f"  Score below threshold ({score_threshold}), logging only")
+                print(f"  Score below threshold ({score_threshold}), logging only", flush=True)
                 recommendation = "skip"
 
             # Mark as processed
@@ -115,47 +117,56 @@ def process_applications():
 
         # Summary
         stats = tracker.get_stats()
-        print(f"\n{'='*50}")
-        print(f"Run complete!")
-        print(f"  New applications processed: {new_count}")
-        print(f"  Alerts sent this run: {alert_count}")
-        print(f"  Total processed all-time: {stats['total_processed']}")
-        print(f"{'='*50}\n")
+        print(f"\n{'='*50}", flush=True)
+        print(f"Run complete!", flush=True)
+        print(f"  New applications processed: {new_count}", flush=True)
+        print(f"  Alerts sent this run: {alert_count}", flush=True)
+        print(f"  Total processed all-time: {stats['total_processed']}", flush=True)
+        print(f"{'='*50}\n", flush=True)
+
+        return True
 
     except Exception as e:
-        print(f"Error during processing: {e}")
+        print(f"Error during processing: {e}", flush=True)
         import traceback
         traceback.print_exc()
+        sys.stdout.flush()
+        return False
 
 
 def main():
-    """Main entry point - runs the polling loop."""
+    """Main entry point - runs forever with simple sleep loop."""
+    # Disable output buffering
+    sys.stdout.reconfigure(line_buffering=True)
+
     # Initialize scorer to get config
     scorer = ResumeScorer()
     score_threshold = scorer.get_score_threshold()
 
-    print("=" * 60)
-    print("  Resume Screener - Starting Up")
-    print("=" * 60)
-    print(f"Configuration:")
-    print(f"  Poll interval: {POLL_INTERVAL_MINUTES} minutes")
-    print(f"  Score threshold: {score_threshold}")
-    print(f"  Lookback period: {LOOKBACK_HOURS} hour(s)")
-    print("=" * 60)
+    print("=" * 60, flush=True)
+    print("  Resume Screener - Starting Up", flush=True)
+    print("=" * 60, flush=True)
+    print(f"Configuration:", flush=True)
+    print(f"  Poll interval: {POLL_INTERVAL_MINUTES} minutes", flush=True)
+    print(f"  Score threshold: {score_threshold}", flush=True)
+    print(f"  Lookback period: {LOOKBACK_HOURS} hour(s)", flush=True)
+    print("=" * 60, flush=True)
 
-    # Run immediately on startup
-    process_applications()
+    # Calculate sleep time in seconds
+    sleep_seconds = POLL_INTERVAL_MINUTES * 60
 
-    # Schedule regular polling
-    schedule.every(POLL_INTERVAL_MINUTES).minutes.do(process_applications)
-
-    print(f"Scheduler started. Polling every {POLL_INTERVAL_MINUTES} minutes...")
-    print("Press Ctrl+C to stop.\n")
-
-    # Keep running
+    # Run forever
     while True:
-        schedule.run_pending()
-        time.sleep(60)  # Check every minute
+        # Process applications
+        process_applications()
+
+        # Wait for next run
+        next_run = datetime.utcnow().isoformat()
+        print(f"Sleeping for {POLL_INTERVAL_MINUTES} minutes until next run...", flush=True)
+        print(f"Current time: {next_run}Z", flush=True)
+        sys.stdout.flush()
+
+        time.sleep(sleep_seconds)
 
 
 if __name__ == "__main__":
