@@ -18,9 +18,8 @@ from tracker import ApplicationTracker
 # Load environment variables
 load_dotenv()
 
-# Configuration
+# Configuration (can be overridden via env vars)
 POLL_INTERVAL_MINUTES = int(os.getenv("POLL_INTERVAL_MINUTES", "60"))
-SCORE_THRESHOLD = float(os.getenv("SCORE_THRESHOLD", "7.0"))
 LOOKBACK_HOURS = int(os.getenv("LOOKBACK_HOURS", "1"))
 
 
@@ -36,6 +35,9 @@ def process_applications():
         scorer = ResumeScorer()
         slack = SlackNotifier()
         tracker = ApplicationTracker()
+
+        # Get threshold from config
+        score_threshold = scorer.get_score_threshold()
 
         # Fetch recent applications
         print(f"Fetching applications from the last {LOOKBACK_HOURS} hour(s)...")
@@ -60,6 +62,7 @@ def process_applications():
             details = ashby.get_application_details(app)
 
             candidate_name = details["candidate_name"]
+            candidate_id = details["candidate_id"]
             job_title = details["job_title"]
             email = details["candidate_email"]
             resume_text = details["resume_text"]
@@ -72,19 +75,25 @@ def process_applications():
             scores = scorer.score_resume(resume_text, job_title, candidate_name)
             total_score = scores.get("total_score", 0)
 
-            print(f"  Scores: Healthcare={scores.get('healthcare_experience')}, "
-                  f"Startup={scores.get('startup_venture_experience')}, "
-                  f"Role Fit={scores.get('role_relevance')}")
+            # Log scores
+            print(f"  Scores:")
+            print(f"    Technical/AI: {scores.get('technical_ai_ability', 'N/A')}/10")
+            print(f"    Recruiting: {scores.get('recruiting_experience', 'N/A')}/10")
+            print(f"    Startup/VC: {scores.get('startup_vc_background', 'N/A')}/10")
+            print(f"    Builder: {scores.get('builder_mentality', 'N/A')}/10")
+            print(f"    Healthcare: {scores.get('healthcare_venture_experience', 'N/A')}/10")
             print(f"  Total Score: {total_score}/10")
+            print(f"  Assessment: {scores.get('fit_summary', 'N/A')}")
 
             # Decide action based on score
-            if total_score >= SCORE_THRESHOLD:
-                print(f"  :star: HIGH SCORE - Sending Slack alert...")
+            if total_score >= score_threshold:
+                print(f"  *** HIGH SCORE - Sending Slack alert...")
                 success = slack.send_candidate_alert(
                     candidate_name=candidate_name,
                     job_title=job_title,
                     email=email,
                     scores=scores,
+                    candidate_id=candidate_id,
                 )
                 recommendation = "alert"
                 if success:
@@ -93,7 +102,7 @@ def process_applications():
                 else:
                     print(f"  Failed to send Slack alert")
             else:
-                print(f"  Score below threshold ({SCORE_THRESHOLD}), logging only")
+                print(f"  Score below threshold ({score_threshold}), logging only")
                 recommendation = "skip"
 
             # Mark as processed
@@ -121,12 +130,16 @@ def process_applications():
 
 def main():
     """Main entry point - runs the polling loop."""
+    # Initialize scorer to get config
+    scorer = ResumeScorer()
+    score_threshold = scorer.get_score_threshold()
+
     print("=" * 60)
     print("  Resume Screener - Starting Up")
     print("=" * 60)
     print(f"Configuration:")
     print(f"  Poll interval: {POLL_INTERVAL_MINUTES} minutes")
-    print(f"  Score threshold: {SCORE_THRESHOLD}")
+    print(f"  Score threshold: {score_threshold}")
     print(f"  Lookback period: {LOOKBACK_HOURS} hour(s)")
     print("=" * 60)
 

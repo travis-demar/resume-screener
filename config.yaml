@@ -1,0 +1,53 @@
+# Resume Screener Configuration
+# Talent Lead - India Role
+
+scoring:
+  threshold: 7.0  # Minimum score to trigger Slack alert
+
+  criteria:
+    - name: "technical_ai_ability"
+      label: "Technical & AI Ability"
+      weight: "high"
+      description: |
+        Experience with AI tools like Claude, Cursor, Clay, or any vibe coding/automation tools.
+        Bonus for CS or engineering degree.
+
+    - name: "recruiting_experience"
+      label: "Recruiting Experience"
+      weight: "medium"
+      description: |
+        At least 1 year in talent sourcing, acquisition, or recruiting operations.
+        ATS experience is a plus.
+
+    - name: "startup_vc_background"
+      label: "Startup/VC Background"
+      weight: "medium"
+      description: |
+        Experience at startups, venture studios, or VC-backed companies.
+        Scrappy, fast-moving environments.
+
+    - name: "builder_mentality"
+      label: "Builder Mentality"
+      weight: "high"
+      description: |
+        Evidence they have built systems, automated workflows, or created something from scratch
+        rather than just maintaining existing processes.
+
+    - name: "healthcare_venture_experience"
+      label: "Healthcare/Venture Experience"
+      weight: "low_bonus"
+      description: |
+        Nice to have but not required. Experience in healthcare, healthtech, or venture capital.
+
+  weight_values:
+    high: 3
+    medium: 2
+    low_bonus: 1
+
+ashby:
+  base_url: "https://app.ashbyhq.com"
+  profile_url_template: "https://app.ashbyhq.com/candidates/{candidate_id}"
+
+polling:
+  interval_minutes: 60
+  lookback_hours: 1
