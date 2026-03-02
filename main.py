@@ -8,7 +8,9 @@ and sends Slack alerts for high-scoring candidates.
 import os
 import sys
 import time
+import threading
 from datetime import datetime
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from dotenv import load_dotenv
 
 from ashby_client import AshbyClient
@@ -22,6 +24,29 @@ load_dotenv()
 # Configuration (can be overridden via env vars)
 POLL_INTERVAL_MINUTES = int(os.getenv("POLL_INTERVAL_MINUTES", "60"))
 LOOKBACK_HOURS = int(os.getenv("LOOKBACK_HOURS", "1"))
+HEALTH_CHECK_PORT = int(os.getenv("PORT", "8080"))
+
+
+class HealthCheckHandler(BaseHTTPRequestHandler):
+    """Simple HTTP handler for health checks."""
+
+    def do_GET(self):
+        """Respond to GET requests with OK."""
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain")
+        self.end_headers()
+        self.wfile.write(b"OK")
+
+    def log_message(self, format, *args):
+        """Suppress default logging to keep logs clean."""
+        pass
+
+
+def start_health_server():
+    """Start the health check server in a background thread."""
+    server = HTTPServer(("0.0.0.0", HEALTH_CHECK_PORT), HealthCheckHandler)
+    print(f"Health check server running on port {HEALTH_CHECK_PORT}", flush=True)
+    server.serve_forever()
 
 
 def process_applications():
@@ -135,9 +160,13 @@ def process_applications():
 
 
 def main():
-    """Main entry point - runs forever with simple sleep loop."""
+    """Main entry point - runs health server and polling loop."""
     # Disable output buffering
     sys.stdout.reconfigure(line_buffering=True)
+
+    # Start health check server in background thread
+    health_thread = threading.Thread(target=start_health_server, daemon=True)
+    health_thread.start()
 
     # Initialize scorer to get config
     scorer = ResumeScorer()
@@ -150,6 +179,7 @@ def main():
     print(f"  Poll interval: {POLL_INTERVAL_MINUTES} minutes", flush=True)
     print(f"  Score threshold: {score_threshold}", flush=True)
     print(f"  Lookback period: {LOOKBACK_HOURS} hour(s)", flush=True)
+    print(f"  Health check port: {HEALTH_CHECK_PORT}", flush=True)
     print("=" * 60, flush=True)
 
     # Calculate sleep time in seconds
