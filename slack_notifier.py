@@ -55,24 +55,23 @@ class SlackNotifier:
         fit_summary = scores.get("fit_summary", "No summary available.")
         criteria_labels = scores.get("criteria_labels", {})
 
-        # Build score breakdown fields
+        # Build score breakdown fields dynamically from criteria_labels
         score_fields = []
-        criteria_order = [
-            "technical_ai_ability",
-            "recruiting_experience",
-            "startup_vc_background",
-            "builder_mentality",
-            "healthcare_venture_experience",
-        ]
-
-        for criterion_name in criteria_order:
+        for criterion_name, label in criteria_labels.items():
             if criterion_name in scores:
-                label = criteria_labels.get(criterion_name, criterion_name.replace("_", " ").title())
                 score = scores[criterion_name]
                 score_fields.append({
                     "type": "mrkdwn",
                     "text": f"*{label}:*\n{score}/10",
                 })
+
+        # Build extra info for EA role
+        extra_info = []
+        if "nyc_confirmed" in scores:
+            nyc_status = "Yes" if scores["nyc_confirmed"] else "No"
+            extra_info.append(f"*NYC Location:* {nyc_status}")
+        if "years_of_experience" in scores:
+            extra_info.append(f"*Years of Experience:* {scores['years_of_experience']}")
 
         blocks = [
             {
@@ -90,22 +89,35 @@ class SlackNotifier:
                     {"type": "mrkdwn", "text": f"*Overall Score:*\n{total_score}/10"},
                 ],
             },
-            {"type": "divider"},
-            {
+        ]
+
+        # Add extra info if present (NYC confirmed, years of experience)
+        if extra_info:
+            blocks.append({
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": "*Score Breakdown:*",
+                    "text": " | ".join(extra_info),
                 },
+            })
+
+        blocks.append({"type": "divider"})
+        blocks.append({
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": "*Score Breakdown:*",
             },
-        ]
+        })
 
         # Add score fields (Slack allows max 10 fields per section)
         if score_fields:
-            blocks.append({
-                "type": "section",
-                "fields": score_fields[:10],
-            })
+            # Split into chunks of 10 if needed
+            for i in range(0, len(score_fields), 10):
+                blocks.append({
+                    "type": "section",
+                    "fields": score_fields[i:i+10],
+                })
 
         blocks.append({"type": "divider"})
 

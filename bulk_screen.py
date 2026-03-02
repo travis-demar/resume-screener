@@ -1,7 +1,7 @@
 """
-Bulk Resume Screener - One-time script to screen ALL existing applications.
+Bulk Resume Screener - One-time script to screen applications for a specific job.
 
-This script fetches all applications from Ashby (regardless of date),
+This script fetches applications from Ashby for the Talent Lead - India role,
 scores each one, and sends Slack alerts for high-scoring candidates.
 
 Usage:
@@ -23,32 +23,57 @@ from tracker import ApplicationTracker
 load_dotenv()
 
 # Configuration
+JOB_ID = "63841c46-29a8-40dc-8184-0c6cf7407ccc"  # Executive Assistant & Workplace Operations
+MAX_APPLICATIONS = 600
 DELAY_BETWEEN_CANDIDATES = 2.5  # seconds
+STAGE_FILTER = "Application Review"  # Only process applications in this stage (set to None for all)
 
 
-def fetch_all_applications(ashby: AshbyClient) -> list:
-    """Fetch all applications from Ashby without date filtering."""
-    print("Fetching all applications from Ashby...", flush=True)
+def fetch_applications_for_job(ashby: AshbyClient, job_id: str, max_count: int, stage_filter: str = None) -> list:
+    """Fetch applications for a specific job from Ashby, optionally filtered by stage."""
+    print(f"Fetching applications for job: {job_id}", flush=True)
+    if stage_filter:
+        print(f"Filtering by stage: {stage_filter}", flush=True)
+    print(f"Maximum applications to fetch: {max_count}", flush=True)
 
-    # Use a very large lookback to get all applications
-    # Ashby API may paginate - we'll fetch as many as possible
     all_applications = []
+    filtered_applications = []
 
     try:
-        # Try fetching with no date filter by using a large lookback
-        # 10 years = 87600 hours
-        result = ashby._request("/application.list", {})
+        # Fetch applications filtered by job ID
+        result = ashby._request("/application.list", {
+            "jobId": job_id
+        })
         applications = result.get("results", [])
         all_applications.extend(applications)
+        print(f"  Fetched {len(applications)} applications (page 1)", flush=True)
 
-        # Handle pagination if present
+        # Handle pagination
+        page = 2
         while result.get("nextCursor"):
-            print(f"  Fetching next page (cursor: {result['nextCursor'][:20]}...)", flush=True)
             result = ashby._request("/application.list", {
+                "jobId": job_id,
                 "cursor": result["nextCursor"]
             })
             applications = result.get("results", [])
             all_applications.extend(applications)
+            print(f"  Fetched {len(applications)} applications (page {page})", flush=True)
+            page += 1
+
+        # Filter by stage if specified
+        if stage_filter:
+            for app in all_applications:
+                stage = app.get("currentInterviewStage", {})
+                stage_title = stage.get("title", "") if stage else ""
+                if stage_title == stage_filter:
+                    filtered_applications.append(app)
+            print(f"  Filtered to {len(filtered_applications)} applications in '{stage_filter}'", flush=True)
+            all_applications = filtered_applications
+
+        # Trim to max count if we exceeded it
+        if len(all_applications) > max_count:
+            print(f"  Trimming to {max_count} applications", flush=True)
+            all_applications = all_applications[:max_count]
 
     except Exception as e:
         print(f"Error fetching applications: {e}", flush=True)
@@ -57,9 +82,9 @@ def fetch_all_applications(ashby: AshbyClient) -> list:
 
 
 def bulk_screen():
-    """Screen all existing applications in Ashby."""
+    """Screen applications for the Talent Lead - India role."""
     print("=" * 60, flush=True)
-    print("  Bulk Resume Screener - Starting", flush=True)
+    print("  Bulk Resume Screener - Talent Lead India", flush=True)
     print(f"  Time: {datetime.utcnow().isoformat()}Z", flush=True)
     print("=" * 60, flush=True)
 
@@ -70,14 +95,16 @@ def bulk_screen():
     tracker = ApplicationTracker()
 
     score_threshold = scorer.get_score_threshold()
+    print(f"Job ID: {JOB_ID}", flush=True)
+    print(f"Max applications: {MAX_APPLICATIONS}", flush=True)
     print(f"Score threshold for alerts: {score_threshold}", flush=True)
     print(f"Delay between candidates: {DELAY_BETWEEN_CANDIDATES}s", flush=True)
     print("=" * 60, flush=True)
 
-    # Fetch all applications
-    applications = fetch_all_applications(ashby)
+    # Fetch applications for the specific job
+    applications = fetch_applications_for_job(ashby, JOB_ID, MAX_APPLICATIONS, STAGE_FILTER)
     total_count = len(applications)
-    print(f"\nFound {total_count} total applications", flush=True)
+    print(f"\nFound {total_count} applications for job {JOB_ID}", flush=True)
 
     if total_count == 0:
         print("No applications to process. Exiting.", flush=True)
@@ -128,7 +155,7 @@ def bulk_screen():
 
             # Score the resume
             print(f"  Scoring resume...", flush=True)
-            scores = scorer.score_resume(resume_text, job_title, candidate_name)
+            scores = scorer.score_resume(resume_text, job_title, candidate_name, job_id=JOB_ID)
             total_score = scores.get("total_score", 0)
 
             # Log scores
@@ -184,6 +211,7 @@ def bulk_screen():
     print("\n" + "=" * 60, flush=True)
     print("  BULK SCREENING COMPLETE", flush=True)
     print("=" * 60, flush=True)
+    print(f"  Job ID:                      {JOB_ID}", flush=True)
     print(f"  Total applications found:    {total_count}", flush=True)
     print(f"  Already processed (skipped): {skipped_count}", flush=True)
     print(f"  Candidates reviewed:         {reviewed_count}", flush=True)

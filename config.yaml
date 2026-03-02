@@ -1,52 +1,113 @@
 # Resume Screener Configuration
-# Talent Lead - India Role
+# Multi-role support
 
-scoring:
-  threshold: 7.0  # Minimum score to trigger Slack alert
+roles:
+  # Role 1: Senior Talent Lead - India
+  - job_id: "3460fc9f-f3e6-46c2-b846-1a2fb1017b9a"
+    job_title: "Senior Talent Lead, India"
+    threshold: 7.0
 
-  criteria:
-    - name: "technical_ai_ability"
-      label: "Technical & AI Ability"
-      weight: "high"
-      description: |
-        Experience with AI tools like Claude, Cursor, Clay, or any vibe coding/automation tools.
-        Bonus for CS or engineering degree.
+    criteria:
+      - name: "technical_ai_ability"
+        label: "Technical & AI Ability"
+        weight: "high"
+        description: |
+          Experience with AI tools like Claude, Cursor, Clay, or any vibe coding/automation tools.
+          Bonus for CS or engineering degree.
 
-    - name: "recruiting_experience"
-      label: "Recruiting Experience"
-      weight: "medium"
-      description: |
-        At least 1 year in talent sourcing, acquisition, or recruiting operations.
-        ATS experience is a plus.
+      - name: "recruiting_experience"
+        label: "Recruiting Experience"
+        weight: "medium"
+        description: |
+          At least 1 year in talent sourcing, acquisition, or recruiting operations.
+          ATS experience is a plus.
 
-    - name: "startup_vc_background"
-      label: "Startup/VC Background"
-      weight: "medium"
-      description: |
-        Experience at startups, venture studios, or VC-backed companies.
-        Scrappy, fast-moving environments.
+      - name: "startup_vc_background"
+        label: "Startup/VC Background"
+        weight: "medium"
+        description: |
+          Experience at startups, venture studios, or VC-backed companies.
+          Scrappy, fast-moving environments.
 
-    - name: "builder_mentality"
-      label: "Builder Mentality"
-      weight: "high"
-      description: |
-        Evidence they have built systems, automated workflows, or created something from scratch
-        rather than just maintaining existing processes.
+      - name: "builder_mentality"
+        label: "Builder Mentality"
+        weight: "high"
+        description: |
+          Evidence they have built systems, automated workflows, or created something from scratch
+          rather than just maintaining existing processes.
 
-    - name: "healthcare_venture_experience"
-      label: "Healthcare/Venture Experience"
-      weight: "low_bonus"
-      description: |
-        Nice to have but not required. Experience in healthcare, healthtech, or venture capital.
+      - name: "healthcare_venture_experience"
+        label: "Healthcare/Venture Experience"
+        weight: "low_bonus"
+        description: |
+          Nice to have but not required. Experience in healthcare, healthtech, or venture capital.
 
-  weight_values:
-    high: 3
-    medium: 2
-    low_bonus: 1
+  # Role 2: Executive Assistant & Workplace Operations
+  - job_id: "63841c46-29a8-40dc-8184-0c6cf7407ccc"
+    job_title: "Executive Assistant & Workplace Operations"
+    threshold: 7.0
+
+    criteria:
+      - name: "ea_experience"
+        label: "EA or Relevant Experience"
+        weight: "high"
+        description: |
+          Strong preference for executive assistant experience. Chief of Staff, business operations,
+          or office management is also relevant. Must have 4+ years total experience.
+
+      - name: "years_experience_fit"
+        label: "Years of Experience Fit"
+        weight: "high"
+        description: |
+          Ideal range is 3-11 years of total professional experience.
+          Candidates with 15+ years should score very low (2 or below) on this dimension.
+          Candidates with less than 3 years should also score low.
+
+      - name: "startup_vc_background"
+        label: "Startup/VC Background"
+        weight: "medium"
+        description: |
+          Preference for candidates who have worked at startups, venture capital firms, or venture studios.
+          Corporate-only backgrounds are a negative signal.
+
+      - name: "job_stability"
+        label: "Job Stability"
+        weight: "medium"
+        description: |
+          Negative signal if the candidate has less than 2 years at most of their roles or shows
+          frequent job hopping. Reward candidates with longer tenures.
+
+      - name: "nyc_location"
+        label: "NYC Location"
+        weight: "critical"
+        description: |
+          Candidate must be based in New York City. If they are not in NYC or the NYC metro area,
+          overall score should not exceed 4 regardless of other scores. This is a hard requirement.
+
+      - name: "education"
+        label: "Education"
+        weight: "low"
+        description: |
+          Preference for candidates who attended a top 100 US university.
+          Not a dealbreaker but a positive signal.
+
+      - name: "ai_tech_savvy"
+        label: "AI & Technology Savviness"
+        weight: "medium"
+        description: |
+          Bonus points for any experience with AI tools, scheduling automation, or demonstrated
+          interest in using technology to improve productivity.
+
+weight_values:
+  critical: 5
+  high: 3
+  medium: 2
+  low: 1
+  low_bonus: 1
 
 ashby:
   base_url: "https://app.ashbyhq.com"
-  profile_url_template: "https://app.ashbyhq.com/candidates/{candidate_id}"
+  profile_url_template: "https://app.ashbyhq.com/candidate-searches/new/right-side/candidates/{candidate_id}"
 
 polling:
   interval_minutes: 60

@@ -56,50 +56,124 @@ class AshbyClient:
         result = self._request("/job.info", {"id": job_id})
         return result.get("results", {})
 
-    def get_candidate_resume_text(self, candidate_id: str) -> str:
-        """Fetch the parsed resume text for a candidate."""
+    def _build_profile_summary(self, candidate: dict) -> str:
+        """Build a profile summary from available candidate data."""
+        parts = []
+
+        name = candidate.get("name", "")
+        if name:
+            parts.append(f"Candidate: {name}")
+
+        position = candidate.get("position", "")
+        if position:
+            parts.append(f"Current Position: {position}")
+
+        company = candidate.get("company", "")
+        if company:
+            parts.append(f"Current Company: {company}")
+
+        school = candidate.get("school", "")
+        if school:
+            parts.append(f"Education: {school}")
+
+        # Add social links
+        social_links = candidate.get("socialLinks", [])
+        for link in social_links:
+            link_type = link.get("type", "")
+            url = link.get("url", "")
+            if link_type and url:
+                parts.append(f"{link_type}: {url}")
+
+        # Add tags if any
+        tags = candidate.get("tags", [])
+        if tags:
+            tag_names = [t.get("title", "") for t in tags if t.get("title")]
+            if tag_names:
+                parts.append(f"Tags: {', '.join(tag_names)}")
+
+        # Add location if available
+        location = candidate.get("location", {})
+        if location:
+            loc_parts = []
+            if location.get("city"):
+                loc_parts.append(location["city"])
+            if location.get("region"):
+                loc_parts.append(location["region"])
+            if location.get("country"):
+                loc_parts.append(location["country"])
+            if loc_parts:
+                parts.append(f"Location: {', '.join(loc_parts)}")
+
+        return "\n".join(parts)
+
+    def get_candidate_profile_text(self, candidate_id: str) -> str:
+        """Fetch candidate profile text - tries resume first, falls back to profile summary."""
         try:
-            result = self._request("/candidate.listDocuments", {
-                "candidateId": candidate_id,
-            })
-            documents = result.get("results", [])
-
-            for doc in documents:
-                if doc.get("type") == "Resume" and doc.get("parsedContent"):
-                    return doc["parsedContent"]
-
-            # Fallback: try to get resume from candidate info
             candidate = self.get_candidate(candidate_id)
-            if candidate.get("resume", {}).get("text"):
-                return candidate["resume"]["text"]
 
-            return ""
+            # Try to get parsed resume text
+            resume_text = ""
+
+            # Check for resume file handle with parsed text
+            if candidate.get("resumeFileHandle"):
+                file_handle = candidate["resumeFileHandle"]
+                if file_handle.get("parsedText"):
+                    resume_text = file_handle["parsedText"]
+
+            # Check for resume in fileHandles
+            if not resume_text:
+                file_handles = candidate.get("fileHandles", [])
+                for fh in file_handles:
+                    if fh.get("type") == "Resume" and fh.get("parsedText"):
+                        resume_text = fh["parsedText"]
+                        break
+
+            # If we have resume text, return it
+            if resume_text:
+                return resume_text
+
+            # Fall back to building a profile summary from available data
+            profile_summary = self._build_profile_summary(candidate)
+            return profile_summary
+
         except Exception as e:
-            print(f"Error fetching resume for candidate {candidate_id}: {e}")
+            print(f"Error fetching profile for candidate {candidate_id}: {e}")
             return ""
 
     def get_application_details(self, application: dict) -> dict:
         """Get full details for an application including candidate and job info."""
-        candidate_id = application.get("candidateId")
-        job_id = application.get("jobId")
+        # Extract embedded candidate data (Ashby includes it in application response)
+        embedded_candidate = application.get("candidate", {})
+        embedded_job = application.get("job", {})
 
-        candidate = self.get_candidate(candidate_id) if candidate_id else {}
-        job = self.get_job(job_id) if job_id else {}
-        resume_text = self.get_candidate_resume_text(candidate_id) if candidate_id else ""
+        # Get candidate ID from embedded data or top level
+        candidate_id = embedded_candidate.get("id") or application.get("candidateId")
+        job_id = embedded_job.get("id") or application.get("jobId")
 
-        # Extract candidate name
-        name = candidate.get("name") or ""
+        # Extract candidate name from embedded data
+        name = embedded_candidate.get("name", "")
         if not name:
-            first = candidate.get("firstName", "")
-            last = candidate.get("lastName", "")
+            first = embedded_candidate.get("firstName", "")
+            last = embedded_candidate.get("lastName", "")
             name = f"{first} {last}".strip()
 
-        # Extract email
+        # Extract email from embedded data
         email = ""
-        if candidate.get("primaryEmailAddress", {}).get("value"):
-            email = candidate["primaryEmailAddress"]["value"]
-        elif candidate.get("emailAddresses"):
-            email = candidate["emailAddresses"][0].get("value", "")
+        primary_email = embedded_candidate.get("primaryEmailAddress", {})
+        if primary_email.get("value"):
+            email = primary_email["value"]
+        elif embedded_candidate.get("emailAddresses"):
+            emails = embedded_candidate["emailAddresses"]
+            if emails and len(emails) > 0:
+                email = emails[0].get("value", "")
+
+        # Extract job title from embedded data
+        job_title = embedded_job.get("title", "Unknown Position")
+
+        # Fetch profile text (resume or profile summary)
+        resume_text = ""
+        if candidate_id:
+            resume_text = self.get_candidate_profile_text(candidate_id)
 
         return {
             "application_id": application.get("id"),
@@ -107,7 +181,7 @@ class AshbyClient:
             "candidate_name": name or "Unknown",
             "candidate_email": email,
             "job_id": job_id,
-            "job_title": job.get("title", "Unknown Position"),
+            "job_title": job_title,
             "resume_text": resume_text,
             "applied_at": application.get("createdAt"),
         }
