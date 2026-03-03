@@ -3,11 +3,14 @@ Resume Screener - Automated candidate screening with Ashby, Claude, and Slack.
 
 Polls Ashby for new applications, scores resumes using Claude,
 and sends Slack alerts for high-scoring candidates.
+
+Supports multiple roles with role-specific scoring criteria.
 """
 
 import os
 import sys
 import time
+import yaml
 import threading
 from datetime import datetime
 from http.server import HTTPServer, BaseHTTPRequestHandler
@@ -25,6 +28,13 @@ load_dotenv()
 POLL_INTERVAL_MINUTES = int(os.getenv("POLL_INTERVAL_MINUTES", "60"))
 LOOKBACK_HOURS = int(os.getenv("LOOKBACK_HOURS", "1"))
 HEALTH_CHECK_PORT = int(os.getenv("PORT", "8080"))
+
+
+def load_config():
+    """Load configuration from config.yaml."""
+    config_path = os.path.join(os.path.dirname(__file__), "config.yaml")
+    with open(config_path, "r") as f:
+        return yaml.safe_load(f)
 
 
 class HealthCheckHandler(BaseHTTPRequestHandler):
@@ -50,11 +60,11 @@ def start_health_server():
 
 
 def process_applications():
-    """Fetch and process new job applications."""
-    print(f"\n{'='*50}", flush=True)
+    """Fetch and process new job applications for all configured roles."""
+    print(f"\n{'='*60}", flush=True)
     print(f"Starting application processing run...", flush=True)
     print(f"Time: {datetime.utcnow().isoformat()}Z", flush=True)
-    print(f"{'='*50}", flush=True)
+    print(f"{'='*60}", flush=True)
 
     try:
         # Initialize clients
@@ -63,30 +73,42 @@ def process_applications():
         slack = SlackNotifier()
         tracker = ApplicationTracker()
 
-        # Get threshold from config
-        score_threshold = scorer.get_score_threshold()
+        # Load config to get role definitions
+        config = load_config()
+        roles = config.get("roles", [])
+        role_job_ids = {role["job_id"]: role for role in roles}
+
+        print(f"Monitoring {len(roles)} role(s):", flush=True)
+        for role in roles:
+            print(f"  - {role['job_title']} (threshold: {role['threshold']})", flush=True)
 
         # Fetch recent applications
-        print(f"Fetching applications from the last {LOOKBACK_HOURS} hour(s)...", flush=True)
+        print(f"\nFetching applications from the last {LOOKBACK_HOURS} hour(s)...", flush=True)
         applications = ashby.get_recent_applications(hours=LOOKBACK_HOURS)
         print(f"Found {len(applications)} application(s)", flush=True)
 
         new_count = 0
         alert_count = 0
+        skipped_no_role = 0
 
         for app in applications:
             app_id = app.get("id")
 
             # Skip if already processed
             if tracker.is_processed(app_id):
-                print(f"  Skipping {app_id} (already processed)", flush=True)
+                continue
+
+            # Get full application details
+            details = ashby.get_application_details(app)
+            job_id = details.get("job_id")
+
+            # Check if this job is one we're monitoring
+            if job_id not in role_job_ids:
+                skipped_no_role += 1
                 continue
 
             new_count += 1
-
-            # Get full application details
-            print(f"\nProcessing application {app_id}...", flush=True)
-            details = ashby.get_application_details(app)
+            role_config = role_job_ids[job_id]
 
             candidate_name = details["candidate_name"]
             candidate_id = details["candidate_id"]
@@ -94,23 +116,26 @@ def process_applications():
             email = details["candidate_email"]
             resume_text = details["resume_text"]
 
+            print(f"\nProcessing application {app_id}...", flush=True)
             print(f"  Candidate: {candidate_name}", flush=True)
             print(f"  Job: {job_title}", flush=True)
 
-            # Score the resume
+            # Score the resume using role-specific criteria
             print(f"  Scoring resume...", flush=True)
-            scores = scorer.score_resume(resume_text, job_title, candidate_name)
+            scores = scorer.score_resume(resume_text, job_title, candidate_name, job_id=job_id)
             total_score = scores.get("total_score", 0)
 
-            # Log scores
+            # Log scores dynamically based on role criteria
             print(f"  Scores:", flush=True)
-            print(f"    Technical/AI: {scores.get('technical_ai_ability', 'N/A')}/10", flush=True)
-            print(f"    Recruiting: {scores.get('recruiting_experience', 'N/A')}/10", flush=True)
-            print(f"    Startup/VC: {scores.get('startup_vc_background', 'N/A')}/10", flush=True)
-            print(f"    Builder: {scores.get('builder_mentality', 'N/A')}/10", flush=True)
-            print(f"    Healthcare: {scores.get('healthcare_venture_experience', 'N/A')}/10", flush=True)
+            criteria_labels = scores.get("criteria_labels", {})
+            for criterion_name, label in criteria_labels.items():
+                score_val = scores.get(criterion_name, "N/A")
+                print(f"    {label}: {score_val}/10", flush=True)
             print(f"  Total Score: {total_score}/10", flush=True)
             print(f"  Assessment: {scores.get('fit_summary', 'N/A')}", flush=True)
+
+            # Get role-specific threshold
+            score_threshold = role_config.get("threshold", 7.0)
 
             # Decide action based on score
             if total_score >= score_threshold:
@@ -142,12 +167,13 @@ def process_applications():
 
         # Summary
         stats = tracker.get_stats()
-        print(f"\n{'='*50}", flush=True)
+        print(f"\n{'='*60}", flush=True)
         print(f"Run complete!", flush=True)
         print(f"  New applications processed: {new_count}", flush=True)
+        print(f"  Skipped (not monitored roles): {skipped_no_role}", flush=True)
         print(f"  Alerts sent this run: {alert_count}", flush=True)
         print(f"  Total processed all-time: {stats['total_processed']}", flush=True)
-        print(f"{'='*50}\n", flush=True)
+        print(f"{'='*60}\n", flush=True)
 
         return True
 
@@ -168,18 +194,20 @@ def main():
     health_thread = threading.Thread(target=start_health_server, daemon=True)
     health_thread.start()
 
-    # Initialize scorer to get config
-    scorer = ResumeScorer()
-    score_threshold = scorer.get_score_threshold()
+    # Load config to display roles
+    config = load_config()
+    roles = config.get("roles", [])
 
     print("=" * 60, flush=True)
     print("  Resume Screener - Starting Up", flush=True)
     print("=" * 60, flush=True)
     print(f"Configuration:", flush=True)
     print(f"  Poll interval: {POLL_INTERVAL_MINUTES} minutes", flush=True)
-    print(f"  Score threshold: {score_threshold}", flush=True)
     print(f"  Lookback period: {LOOKBACK_HOURS} hour(s)", flush=True)
     print(f"  Health check port: {HEALTH_CHECK_PORT}", flush=True)
+    print(f"  Roles monitored: {len(roles)}", flush=True)
+    for role in roles:
+        print(f"    - {role['job_title']} (threshold: {role['threshold']})", flush=True)
     print("=" * 60, flush=True)
 
     # Calculate sleep time in seconds
