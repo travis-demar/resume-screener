@@ -83,14 +83,15 @@ class ResumeScorer:
         criteria_names = [c["name"] for c in criteria]
         json_fields = ",\n    ".join([f'"{name}": <score 1-10>' for name in criteria_names])
 
-        # Special handling for NYC location requirement
+        # Special handling for NYC location (hard gate, not scored)
         nyc_note = ""
-        if any(c["name"] == "nyc_location" for c in criteria):
+        if role_config.get("nyc_hard_gate"):
             nyc_note = """
-CRITICAL NYC LOCATION RULE:
-- If the candidate is NOT in NYC or the NYC metro area, the overall weighted score MUST NOT exceed 4.
-- Look for location indicators in the resume: city, state, "based in", addresses, etc.
-- Include "nyc_confirmed": true/false in your response to indicate if they are in NYC.
+NYC LOCATION CHECK (HARD GATE - NOT A SCORED DIMENSION):
+- Determine if the candidate is based in NYC or the NYC metro area.
+- Look for location indicators: city, state, "based in", addresses, LinkedIn location, etc.
+- Include "nyc_confirmed": true/false in your response.
+- This is a hard requirement - if not in NYC, the candidate will not be alerted regardless of score.
 """
 
         # Special handling for years of experience
@@ -102,7 +103,7 @@ YEARS OF EXPERIENCE GUIDANCE:
 - Ideal range: 3-11 years = score 7-10
 - 12-14 years = score 4-6
 - 15+ years = score 2 or below (too senior for this role)
-- Less than 3 years = score 3-4
+- Less than 2 years = score 3-4 (too junior)
 - Include "years_of_experience": <number> in your response.
 """
 

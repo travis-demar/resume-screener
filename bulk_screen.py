@@ -81,10 +81,18 @@ def fetch_applications_for_job(ashby: AshbyClient, job_id: str, max_count: int, 
     return all_applications
 
 
+def load_config():
+    """Load configuration from config.yaml."""
+    import yaml
+    config_path = os.path.join(os.path.dirname(__file__), "config.yaml")
+    with open(config_path, "r") as f:
+        return yaml.safe_load(f)
+
+
 def bulk_screen():
-    """Screen applications for the Talent Lead - India role."""
+    """Screen applications for a specific role."""
     print("=" * 60, flush=True)
-    print("  Bulk Resume Screener - Talent Lead India", flush=True)
+    print("  Bulk Resume Screener", flush=True)
     print(f"  Time: {datetime.utcnow().isoformat()}Z", flush=True)
     print("=" * 60, flush=True)
 
@@ -94,7 +102,13 @@ def bulk_screen():
     slack = SlackNotifier()
     tracker = ApplicationTracker()
 
-    score_threshold = scorer.get_score_threshold()
+    # Load role config
+    config = load_config()
+    roles = {role["job_id"]: role for role in config.get("roles", [])}
+    role_config = roles.get(JOB_ID, {})
+
+    score_threshold = scorer.get_score_threshold(job_id=JOB_ID)
+    nyc_hard_gate = role_config.get("nyc_hard_gate", False)
     print(f"Job ID: {JOB_ID}", flush=True)
     print(f"Max applications: {MAX_APPLICATIONS}", flush=True)
     print(f"Score threshold for alerts: {score_threshold}", flush=True)
@@ -158,35 +172,43 @@ def bulk_screen():
             scores = scorer.score_resume(resume_text, job_title, candidate_name, job_id=JOB_ID)
             total_score = scores.get("total_score", 0)
 
-            # Log scores
+            # Log scores dynamically based on criteria
             print(f"  Scores:", flush=True)
-            print(f"    Technical/AI: {scores.get('technical_ai_ability', 'N/A')}/10", flush=True)
-            print(f"    Recruiting: {scores.get('recruiting_experience', 'N/A')}/10", flush=True)
-            print(f"    Startup/VC: {scores.get('startup_vc_background', 'N/A')}/10", flush=True)
-            print(f"    Builder: {scores.get('builder_mentality', 'N/A')}/10", flush=True)
-            print(f"    Healthcare: {scores.get('healthcare_venture_experience', 'N/A')}/10", flush=True)
+            criteria_labels = scores.get("criteria_labels", {})
+            for criterion_name, label in criteria_labels.items():
+                score_val = scores.get(criterion_name, "N/A")
+                print(f"    {label}: {score_val}/10", flush=True)
             print(f"  Total Score: {total_score}/10", flush=True)
             print(f"  Assessment: {scores.get('fit_summary', 'N/A')}", flush=True)
 
+            # Check NYC status if hard gate is enabled
+            nyc_confirmed = scores.get("nyc_confirmed", True)
+            if nyc_hard_gate:
+                print(f"  NYC Location: {'Confirmed' if nyc_confirmed else 'NOT CONFIRMED'}", flush=True)
+
             reviewed_count += 1
 
-            # Decide action based on score
+            # Decide action based on score and NYC gate
             if total_score >= score_threshold:
                 high_score_count += 1
-                print(f"  *** HIGH SCORE - Sending Slack alert...", flush=True)
-                success = slack.send_candidate_alert(
-                    candidate_name=candidate_name,
-                    job_title=job_title,
-                    email=email,
-                    scores=scores,
-                    candidate_id=candidate_id,
-                )
-                recommendation = "alert"
-                if success:
-                    alerts_sent += 1
-                    print(f"  Slack alert sent!", flush=True)
+                if nyc_hard_gate and not nyc_confirmed:
+                    print(f"  *** HIGH SCORE but NOT in NYC - Skipping alert", flush=True)
+                    recommendation = "skip_nyc"
                 else:
-                    print(f"  Failed to send Slack alert", flush=True)
+                    print(f"  *** HIGH SCORE - Sending Slack alert...", flush=True)
+                    success = slack.send_candidate_alert(
+                        candidate_name=candidate_name,
+                        job_title=job_title,
+                        email=email,
+                        scores=scores,
+                        candidate_id=candidate_id,
+                    )
+                    recommendation = "alert"
+                    if success:
+                        alerts_sent += 1
+                        print(f"  Slack alert sent!", flush=True)
+                    else:
+                        print(f"  Failed to send Slack alert", flush=True)
             else:
                 print(f"  Score below threshold, no alert.", flush=True)
                 recommendation = "skip"

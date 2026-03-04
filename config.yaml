@@ -46,6 +46,7 @@ roles:
   - job_id: "63841c46-29a8-40dc-8184-0c6cf7407ccc"
     job_title: "Executive Assistant & Workplace Operations"
     threshold: 7.0
+    nyc_hard_gate: true  # If not in NYC, do not alert regardless of score
 
     criteria:
       - name: "ea_experience"
@@ -61,39 +62,33 @@ roles:
         description: |
           Ideal range is 3-11 years of total professional experience.
           Candidates with 15+ years should score very low (2 or below) on this dimension.
-          Candidates with less than 3 years should also score low.
+          Candidates with less than 2 years should also score low.
 
       - name: "startup_vc_background"
         label: "Startup/VC Background"
-        weight: "medium"
+        weight: "high"
         description: |
           Preference for candidates who have worked at startups, venture capital firms, or venture studios.
-          Corporate-only backgrounds are a negative signal.
+          Large corporate-only backgrounds are a negative signal.
 
       - name: "job_stability"
         label: "Job Stability"
         weight: "medium"
         description: |
           Negative signal if the candidate has less than 2 years at most of their roles or shows
-          frequent job hopping. Reward candidates with longer tenures.
-
-      - name: "nyc_location"
-        label: "NYC Location"
-        weight: "critical"
-        description: |
-          Candidate must be based in New York City. If they are not in NYC or the NYC metro area,
-          overall score should not exceed 4 regardless of other scores. This is a hard requirement.
+          frequent job hopping. Reward candidates with longer tenures, but not beyond 8+ years
+          in a single role (may indicate lack of growth).
 
       - name: "education"
         label: "Education"
-        weight: "low"
+        weight: "low_medium"
         description: |
           Preference for candidates who attended a top 100 US university.
           Not a dealbreaker but a positive signal.
 
       - name: "ai_tech_savvy"
         label: "AI & Technology Savviness"
-        weight: "medium"
+        weight: "low_medium"
         description: |
           Bonus points for any experience with AI tools, scheduling automation, or demonstrated
           interest in using technology to improve productivity.
@@ -102,6 +97,7 @@ weight_values:
   critical: 5
   high: 3
   medium: 2
+  low_medium: 1.5
   low: 1
   low_bonus: 1
 

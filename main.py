@@ -140,22 +140,33 @@ def process_applications():
             # Get role-specific threshold
             score_threshold = role_config.get("threshold", 7.0)
 
-            # Decide action based on score
+            # Check NYC hard gate if applicable
+            nyc_hard_gate = role_config.get("nyc_hard_gate", False)
+            nyc_confirmed = scores.get("nyc_confirmed", True)  # Default to True if not checked
+
+            if nyc_hard_gate:
+                print(f"  NYC Location: {'Confirmed' if nyc_confirmed else 'NOT CONFIRMED'}", flush=True)
+
+            # Decide action based on score and NYC gate
             if total_score >= score_threshold:
-                print(f"  *** HIGH SCORE - Sending Slack alert...", flush=True)
-                success = slack.send_candidate_alert(
-                    candidate_name=candidate_name,
-                    job_title=job_title,
-                    email=email,
-                    scores=scores,
-                    candidate_id=candidate_id,
-                )
-                recommendation = "alert"
-                if success:
-                    alert_count += 1
-                    print(f"  Slack alert sent successfully!", flush=True)
+                if nyc_hard_gate and not nyc_confirmed:
+                    print(f"  *** HIGH SCORE but NOT in NYC - Skipping alert", flush=True)
+                    recommendation = "skip_nyc"
                 else:
-                    print(f"  Failed to send Slack alert", flush=True)
+                    print(f"  *** HIGH SCORE - Sending Slack alert...", flush=True)
+                    success = slack.send_candidate_alert(
+                        candidate_name=candidate_name,
+                        job_title=job_title,
+                        email=email,
+                        scores=scores,
+                        candidate_id=candidate_id,
+                    )
+                    recommendation = "alert"
+                    if success:
+                        alert_count += 1
+                        print(f"  Slack alert sent successfully!", flush=True)
+                    else:
+                        print(f"  Failed to send Slack alert", flush=True)
             else:
                 print(f"  Score below threshold ({score_threshold}), logging only", flush=True)
                 recommendation = "skip"
