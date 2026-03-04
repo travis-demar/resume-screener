@@ -96,7 +96,7 @@ roles:
   # Role 3: Managing Director of New Ventures
   - job_id: "e484d977-fe6b-47be-8dc2-78b44a2f51fa"
     job_title: "Managing Director of New Ventures"
-    threshold: 7.5
+    threshold: 7.0
     founder_boost: 0.05  # 5% boost to final score if candidate is a former founder
 
     criteria:
@@ -108,7 +108,7 @@ roles:
           - Tier 1 (score 8-10): Top-tier global VC firms: Sequoia, Accel, a16z, Benchmark, Insight,
             NEA, General Catalyst, Flare, or equivalent
           - Tier 2 (score 6-8): Healthcare-specific VC or strong tier 2 firms: 7wire, Aegis,
-            Echo Health, Frist Cressey, Health X, or equivalent
+            Echo Health, Frist Cressey, Health X, MVM Partners, or equivalent
           - Tier 3 (score 4-6): General consulting, banking, or private equity: Big 4 consulting,
             internal consulting at large corporations, business analyst roles
           - Negative signal (score below 4): No venture experience, only corporate strategy roles
@@ -124,13 +124,22 @@ roles:
         label: "Career Trajectory"
         weight: "high"
         description: |
-          Evaluate upward mobility and progression:
-          - Positive signals: Rapid advancement and progressive responsibility
-            (e.g., Associate → VP → Principal → Vice President → Director → Managing Director),
-            at least one promotion at the same company, transitions showing intentionality
-            and learning velocity
-          - Negative signals: Lateral moves without upward momentum, career stagnation,
-            long stints at large companies for 5+ years, being in the same role for 4+ years
+          Evaluate speed of career progression relative to years since graduation.
+
+          IMPORTANT: Reaching a senior title (Partner, Principal, VP, Director, MD) quickly is
+          the strongest signal, even if the candidate had fewer total job changes.
+
+          Scoring guidance:
+          - Score 9-10: Reached Partner/Principal/MD level within 10-12 years of undergrad.
+            This is exceptional velocity regardless of number of promotions.
+          - Score 7-8: Reached senior individual contributor or VP level within 8-10 years,
+            OR Partner level within 12-15 years with clear upward trajectory.
+          - Score 5-6: Steady progression but slower pace, or senior title but took 15+ years.
+          - Score 3-4: Lateral moves without upward momentum, stagnation at mid-level roles.
+          - Score 1-2: Career regression, long gaps, or unclear progression.
+
+          Do NOT penalize candidates for having only 1-2 employers if they advanced quickly
+          to senior roles. Loyalty + fast advancement is a positive signal.
 
           Include "career_trajectory_summary": "<one sentence summary>" in your response.
 
