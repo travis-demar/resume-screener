@@ -93,7 +93,86 @@ roles:
           Bonus points for any experience with AI tools, scheduling automation, or demonstrated
           interest in using technology to improve productivity.
 
+  # Role 3: Managing Director of New Ventures
+  - job_id: "e484d977-fe6b-47be-8dc2-78b44a2f51fa"
+    job_title: "Managing Director of New Ventures"
+    threshold: 7.5
+    founder_boost: 0.05  # 5% boost to final score if candidate is a former founder
+
+    criteria:
+      - name: "venture_experience"
+        label: "Venture Experience"
+        weight: "very_high"
+        description: |
+          Use a tiered scoring system:
+          - Tier 1 (score 8-10): Top-tier global VC firms: Sequoia, Accel, a16z, Benchmark, Insight,
+            NEA, General Catalyst, Flare, or equivalent
+          - Tier 2 (score 6-8): Healthcare-specific VC or strong tier 2 firms: 7wire, Aegis,
+            Echo Health, Frist Cressey, Health X, or equivalent
+          - Tier 3 (score 4-6): General consulting, banking, or private equity: Big 4 consulting,
+            internal consulting at large corporations, business analyst roles
+          - Negative signal (score below 4): No venture experience, only corporate strategy roles
+            without external firm experience, academic or research-only background
+
+          IMPORTANT: Candidate must be in an investing-focused role. If their background is in a
+          non-investing function like talent, marketing, or operations, score below 4 regardless
+          of firm prestige.
+
+          Include "venture_tier": "Tier 1", "Tier 2", "Tier 3", or "None" in your response.
+
+      - name: "career_trajectory"
+        label: "Career Trajectory"
+        weight: "high"
+        description: |
+          Evaluate upward mobility and progression:
+          - Positive signals: Rapid advancement and progressive responsibility
+            (e.g., Associate → VP → Principal → Vice President → Director → Managing Director),
+            at least one promotion at the same company, transitions showing intentionality
+            and learning velocity
+          - Negative signals: Lateral moves without upward momentum, career stagnation,
+            long stints at large companies for 5+ years, being in the same role for 4+ years
+
+          Include "career_trajectory_summary": "<one sentence summary>" in your response.
+
+      - name: "educational_background"
+        label: "Educational Background"
+        weight: "medium"
+        description: |
+          Use a tiered scoring system:
+          - Tier 1 (score 8.5-10): Global elite undergraduate: Ivy League, Stanford, MIT, Caltech,
+            Oxford, Cambridge, LSE, or Indian elite (IITs, IIM A/B/C, BITS Pilani, Delhi University
+            St. Stephen's, Hindu College). OR elite graduate: MBA at Harvard, Stanford, Wharton,
+            Kellogg, Booth, MIT Sloan, INSEAD, IIM A/B/C; PhD at top research universities;
+            MD at prestigious medical schools
+          - Tier 2 (score 6.5-8.4): Strong undergraduate (US Top 30, UC Berkeley, Michigan, Virginia)
+            or good graduate programs (MBA top 20, strong regional programs, Master's from
+            reputable institutions)
+          - Tier 3 (score 4-6.4): Regional or local universities with decent reputation,
+            recognized private institutions, strong performance despite lesser-known institution
+          - Negative signals (score below 4): Unaccredited or questionable institutions,
+            unexplained incomplete degrees, misrepresentation, certificates or extension programs only
+
+      - name: "healthcare_experience"
+        label: "Healthcare Experience"
+        weight: "high"
+        description: |
+          Look for deep knowledge across care delivery, health tech, or healthcare services.
+          Ability to develop original investment theses in healthcare.
+          Penalize candidates with no healthcare exposure.
+
+      - name: "ai_technology_fluency"
+        label: "AI & Technology Fluency"
+        weight: "medium"
+        description: |
+          Evidence of sophisticated AI tool usage beyond basic LLM prompting.
+          Has built systems or workflows using AI.
+          Treats AI as a core part of their analytical process.
+
+          Also check if the candidate is a former founder or co-founder of a startup.
+          Include "is_founder": true/false in your response.
+
 weight_values:
+  very_high: 4
   critical: 5
   high: 3
   medium: 2

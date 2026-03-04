@@ -207,7 +207,18 @@ SCORING GUIDANCE:
             scores = json.loads(response_text)
 
             # Calculate weighted total score
-            scores["total_score"] = self._calculate_weighted_score(scores, role_config)
+            base_score = self._calculate_weighted_score(scores, role_config)
+
+            # Apply founder boost if applicable
+            founder_boost = role_config.get("founder_boost", 0)
+            is_founder = scores.get("is_founder", False)
+            if founder_boost and is_founder:
+                boosted_score = round(base_score * (1 + founder_boost), 1)
+                scores["total_score"] = min(boosted_score, 10.0)  # Cap at 10
+                scores["founder_boost_applied"] = True
+            else:
+                scores["total_score"] = base_score
+                scores["founder_boost_applied"] = False
 
             # Add criteria labels for display
             scores["criteria_labels"] = {c["name"]: c["label"] for c in criteria}

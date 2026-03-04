@@ -65,13 +65,23 @@ class SlackNotifier:
                     "text": f"*{label}:*\n{score}/10",
                 })
 
-        # Build extra info for EA role
+        # Build extra info based on role-specific fields
         extra_info = []
+
+        # EA role fields
         if "nyc_confirmed" in scores:
             nyc_status = "Yes" if scores["nyc_confirmed"] else "No"
             extra_info.append(f"*NYC Location:* {nyc_status}")
         if "years_of_experience" in scores:
             extra_info.append(f"*Years of Experience:* {scores['years_of_experience']}")
+
+        # MD New Ventures role fields
+        if "venture_tier" in scores:
+            extra_info.append(f"*Venture Tier:* {scores['venture_tier']}")
+        if scores.get("founder_boost_applied"):
+            extra_info.append("*Founder Boost:* +5% applied")
+        if "career_trajectory_summary" in scores:
+            extra_info.append(f"*Career:* {scores['career_trajectory_summary']}")
 
         blocks = [
             {
