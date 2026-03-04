@@ -83,6 +83,17 @@ class SlackNotifier:
         if "career_trajectory_summary" in scores:
             extra_info.append(f"*Career:* {scores['career_trajectory_summary']}")
 
+        # Director of Global Development, India role fields
+        if "work_experience_tier" in scores:
+            extra_info.append(f"*Work Experience Tier:* {scores['work_experience_tier']}")
+        if "education_tier" in scores:
+            extra_info.append(f"*Education Tier:* {scores['education_tier']}")
+        if "is_founder" in scores:
+            founder_status = "Yes" if scores["is_founder"] else "No"
+            extra_info.append(f"*Former Founder:* {founder_status}")
+        if "career_summary" in scores:
+            extra_info.append(f"*Career:* {scores['career_summary']}")
+
         blocks = [
             {
                 "type": "header",

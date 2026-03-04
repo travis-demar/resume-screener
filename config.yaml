@@ -180,6 +180,105 @@ roles:
           Also check if the candidate is a former founder or co-founder of a startup.
           Include "is_founder": true/false in your response.
 
+  # Role 4: Director of Global Development, India
+  - job_id: "2e254be4-be62-446a-a955-fd9732ae14d2"
+    job_title: "Director of Global Development, India"
+    threshold: 7.5
+
+    criteria:
+      - name: "professional_work_experience"
+        label: "Professional Work Experience"
+        weight: "very_high"
+        description: |
+          Use a tiered scoring system:
+          - Tier 1 (score 8.1-10): Global top-tier investment firms including global venture firms
+            (Sequoia, a16z, Accel, Lightspeed, Insight Partners, Bessemer, Matrix Partners,
+            Norwest Ventures, A91, Z47, Blume Ventures, Elevation Capital, Peak XV, Nexus,
+            Chiratae, Eight Roads), global investment banks (Goldman Sachs, Citigroup, JPMorgan,
+            Morgan Stanley, Blackstone, KKR, Carlyle, Apollo). Extra weight if resume specifically
+            mentions fundraising, capital development, or private placement experience.
+          - Tier 2 (score 7.1-8): Top India-based venture firms or investment banks: Healthquad,
+            W Health, Endiya, B Capital, Stride, Huddle, Antler, or equivalent
+          - Tier 3 (score 6.1-7): Top-tier global management consulting firms: BCG, McKinsey,
+            LEK, Bain, ZS
+          - Tier 4 (score 4-6): General consulting or banking: Big 4 non-strategy practices,
+            commercial or retail banking, internal consulting at large corporations, business
+            analyst roles
+          - Negative signals (score below 4): No consulting, banking, or investment experience;
+            only corporate strategy roles without external firm experience; academic or
+            research-only background
+
+          IMPORTANT: Candidate must be in a consulting or banking focused role. If their
+          background is in an irrelevant function like talent or marketing, score this
+          dimension below 4 regardless of firm prestige.
+
+          Include "work_experience_tier": "Tier 1", "Tier 2", "Tier 3", "Tier 4", or "None" in your response.
+
+      - name: "educational_background"
+        label: "Educational Background"
+        weight: "high"
+        description: |
+          Use a tiered scoring system:
+          - Tier 1 (score 8.5-10): Global elite undergraduate institutions (Ivy League, Stanford,
+            MIT, Caltech, Oxford, Cambridge, LSE; India: IITs, IIM A/B/C, BITS Pilani, Delhi
+            University St. Stephen's, Hindu College) or elite graduate programs (MBA at Harvard,
+            Stanford, Wharton, Kellogg, Booth, MIT Sloan, INSEAD, IIM A/B/C; PhD at top research
+            universities; MD at prestigious medical schools)
+          - Tier 2 (score 6.5-8.4): Strong undergrad (US Top 30, UC Berkeley, Michigan, Virginia;
+            India: top NITs, SRCC, Loyola Chennai, XLRI, ISB Hyderabad; strong international like
+            Toronto, Melbourne, NUS) or good graduate programs (MBA top 20, Master's from
+            reputable institutions, professional certs CA/CFA/FRM)
+          - Tier 3 (score 4-6.4): Regional or local universities with decent reputation,
+            recognized private institutions, strong performance despite lesser-known institution
+          - Negative signals (score below 4): Unaccredited or questionable institutions,
+            unexplained incomplete degrees, misrepresentation
+
+          Score adjustments: Nudge upward within tier for honors, distinctions, scholarships,
+          high grades, academic leadership, publications, or degrees in business/economics/
+          engineering/medicine/science.
+
+          MBA boost: If candidate has an MBA, multiply the education score by 1.10 and cap at 10.
+
+          Include "education_tier": "Tier 1", "Tier 2", "Tier 3", or "None" in your response.
+
+      - name: "founder_experience"
+        label: "Former Founder Experience"
+        weight: "high"
+        description: |
+          Look for titles containing "Founder", "Co-founder", "Co Founder", "Cofounder", or
+          "Founding [Role]" in experience, headline, or summary.
+
+          Score higher for venture-backed technology startups that mention raising capital,
+          acquisitions, or successful exits.
+
+          Negative signals for companies that appear to be solo consulting, advisory, or
+          boutique services businesses.
+
+          Include "is_founder": true/false in your response.
+          Include "career_summary": "<one sentence career summary>" in your response.
+
+      - name: "healthcare_experience"
+        label: "Healthcare Experience"
+        weight: "low"
+        description: |
+          Use a tiered scoring system:
+          - Tier 1 (score 8.5-10): Operating healthcare companies and direct care including
+            digital health/health tech, healthcare services or health systems, clinical roles
+            with business/innovation experience, healthcare venture building. Extra weight for
+            Redesign Health focus areas: value-based care, workforce optimization, patient
+            experience, health equity, aging/senior care, healthcare data and interoperability
+          - Tier 2 (score 6.5-8.4): Healthcare investment and advisory including healthcare-focused
+            VC or PE, healthcare investment banking, healthcare management consulting (McKinsey
+            Health, BCG Healthcare), healthcare policy, healthcare research with commercial
+            applications
+          - Tier 3 (score 4-6.4): Adjacent healthcare exposure including life sciences in
+            non-clinical roles, healthcare IT without deep domain knowledge, academic medicine
+            without innovation focus, healthcare supply chain, health insurance operations in
+            non-strategic roles
+          - Negative signals (score below 4): No healthcare experience, only theoretical or
+            academic healthcare knowledge, healthcare experience limited to personal circumstances,
+            pharma or medical device sales without strategic exposure
+
 weight_values:
   very_high: 4
   critical: 5
