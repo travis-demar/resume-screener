@@ -38,13 +38,49 @@ class AshbyClient:
         result = self._request("/job.list", {"status": "Open"})
         return result.get("results", [])
 
-    def get_recent_applications(self, hours: int = 1) -> list:
-        """Fetch applications submitted in the last N hours."""
+    def get_recent_applications(self, hours: int = 1, job_ids: list = None) -> list:
+        """Fetch applications submitted in the last N hours for specific jobs.
+
+        Note: The Ashby API's createdAfter parameter doesn't work reliably,
+        so we fetch all applications for the specified jobs and filter locally.
+        """
         since = datetime.utcnow() - timedelta(hours=hours)
-        result = self._request("/application.list", {
-            "createdAfter": since.isoformat() + "Z",
-        })
-        return result.get("results", [])
+        all_recent = []
+
+        if not job_ids:
+            # If no job_ids specified, try the API filter (may not work)
+            result = self._request("/application.list", {
+                "createdAfter": since.isoformat() + "Z",
+            })
+            return result.get("results", [])
+
+        # Fetch applications for each job and filter by date locally
+        for job_id in job_ids:
+            result = self._request("/application.list", {"jobId": job_id})
+            apps = result.get("results", [])
+
+            # Paginate to get all applications
+            while result.get("nextCursor"):
+                result = self._request("/application.list", {
+                    "jobId": job_id,
+                    "cursor": result["nextCursor"]
+                })
+                apps.extend(result.get("results", []))
+
+            # Filter by createdAt date locally
+            for app in apps:
+                created_at = app.get("createdAt", "")
+                if created_at:
+                    try:
+                        # Parse ISO format datetime
+                        app_date = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+                        since_aware = since.replace(tzinfo=app_date.tzinfo)
+                        if app_date >= since_aware:
+                            all_recent.append(app)
+                    except (ValueError, TypeError):
+                        pass
+
+        return all_recent
 
     def get_candidate(self, candidate_id: str) -> dict:
         """Fetch candidate details by ID."""

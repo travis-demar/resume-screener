@@ -82,9 +82,12 @@ def process_applications():
         for role in roles:
             print(f"  - {role['job_title']} (threshold: {role['threshold']})", flush=True)
 
-        # Fetch recent applications
+        # Get list of job IDs to monitor
+        job_ids = [role["job_id"] for role in roles]
+
+        # Fetch recent applications for monitored jobs
         print(f"\nFetching applications from the last {LOOKBACK_HOURS} hour(s)...", flush=True)
-        applications = ashby.get_recent_applications(hours=LOOKBACK_HOURS)
+        applications = ashby.get_recent_applications(hours=LOOKBACK_HOURS, job_ids=job_ids)
         print(f"Found {len(applications)} application(s)", flush=True)
 
         new_count = 0
