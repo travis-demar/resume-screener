@@ -181,103 +181,201 @@ roles:
           Include "is_founder": true/false in your response.
 
   # Role 4: Director of Global Development, India
+  # DUAL-TRACK SCORING SYSTEM
   - job_id: "2e254be4-be62-446a-a955-fd9732ae14d2"
     job_title: "Director of Global Development, India"
     threshold: 7.5
+    dual_track: true  # Special flag for dual-track scoring
 
     criteria:
-      - name: "professional_work_experience"
-        label: "Professional Work Experience"
-        weight: "very_high"
+      - name: "profile_classification"
+        label: "Profile Classification"
+        weight: "none"
         description: |
+          STEP 1 - PROFILE DETECTION (do this first, before scoring):
+
+          Classify the candidate into ONE of two tracks based on their PRIMARY background:
+
+          TRACK A: Investor/Banker
+          - Primary background in VC, private equity, investment banking, or management consulting
+          - Has exposure to LP relationships, fund structures, or capital markets
+          - Career path centered on financial services, investing, or advisory
+
+          TRACK B: Founder/Operator
+          - Primary background as a startup founder or early-stage operator
+          - Has raised venture capital or built a company from scratch
+          - Career path centered on building, GTM execution, and entrepreneurship
+
+          IMPORTANT RULES:
+          - If the candidate has meaningful elements of BOTH tracks, classify as "Hybrid"
+            and score on BOTH tracks, then use whichever produces the HIGHER score
+          - If there is insufficient profile data to classify, set "insufficient_data": true
+            and provide a note explaining what information is missing
+
+          Include in your response:
+          - "track": "A", "B", or "Hybrid"
+          - "track_reasoning": "<one sentence explaining why this track was chosen>"
+          - "insufficient_data": true/false
+          - "data_note": "<explanation if insufficient_data is true, otherwise omit>"
+
+      # TRACK A DIMENSIONS (Investor/Banker) - weights sum to 100%
+      - name: "track_a_work_experience"
+        label: "Professional Work Experience"
+        weight: "track_a_40"
+        description: |
+          FOR TRACK A CANDIDATES ONLY (skip if Track B).
+
           Use a tiered scoring system:
           - Tier 1 (score 8.1-10): Global top-tier investment firms including global venture firms
             (Sequoia, a16z, Accel, Lightspeed, Insight Partners, Bessemer, Matrix Partners,
             Norwest Ventures, A91, Z47, Blume Ventures, Elevation Capital, Peak XV, Nexus,
             Chiratae, Eight Roads), global investment banks (Goldman Sachs, Citigroup, JPMorgan,
             Morgan Stanley, Blackstone, KKR, Carlyle, Apollo). Extra weight if resume specifically
-            mentions fundraising, capital development, or private placement experience.
+            mentions LP relationships, fund fundraising, or capital development.
           - Tier 2 (score 7.1-8): Top India-based venture firms or investment banks: Healthquad,
             W Health, Endiya, B Capital, Stride, Huddle, Antler, or equivalent
           - Tier 3 (score 6.1-7): Top-tier global management consulting firms: BCG, McKinsey,
             LEK, Bain, ZS
           - Tier 4 (score 4-6): General consulting or banking: Big 4 non-strategy practices,
-            commercial or retail banking, internal consulting at large corporations, business
-            analyst roles
-          - Negative signals (score below 4): No consulting, banking, or investment experience;
-            only corporate strategy roles without external firm experience; academic or
-            research-only background
+            commercial or retail banking, internal consulting at large corporations
 
-          IMPORTANT: Candidate must be in a consulting or banking focused role. If their
-          background is in an irrelevant function like talent or marketing, score this
-          dimension below 4 regardless of firm prestige.
+          Include "work_experience_tier": "Tier 1", "Tier 2", "Tier 3", "Tier 4", or "None"
 
-          Include "work_experience_tier": "Tier 1", "Tier 2", "Tier 3", "Tier 4", or "None" in your response.
-
-      - name: "educational_background"
+      - name: "track_a_education"
         label: "Educational Background"
-        weight: "high"
+        weight: "track_a_25"
         description: |
+          FOR TRACK A CANDIDATES ONLY (skip if Track B).
+
           Use a tiered scoring system:
-          - Tier 1 (score 8.5-10): Global elite undergraduate institutions (Ivy League, Stanford,
-            MIT, Caltech, Oxford, Cambridge, LSE; India: IITs, IIM A/B/C, BITS Pilani, Delhi
-            University St. Stephen's, Hindu College) or elite graduate programs (MBA at Harvard,
-            Stanford, Wharton, Kellogg, Booth, MIT Sloan, INSEAD, IIM A/B/C; PhD at top research
-            universities; MD at prestigious medical schools)
-          - Tier 2 (score 6.5-8.4): Strong undergrad (US Top 30, UC Berkeley, Michigan, Virginia;
-            India: top NITs, SRCC, Loyola Chennai, XLRI, ISB Hyderabad; strong international like
-            Toronto, Melbourne, NUS) or good graduate programs (MBA top 20, Master's from
-            reputable institutions, professional certs CA/CFA/FRM)
-          - Tier 3 (score 4-6.4): Regional or local universities with decent reputation,
-            recognized private institutions, strong performance despite lesser-known institution
-          - Negative signals (score below 4): Unaccredited or questionable institutions,
-            unexplained incomplete degrees, misrepresentation
+          - Tier 1 (score 8.5-10): Global elite undergraduate (Ivy League, Stanford, MIT, Caltech,
+            Oxford, Cambridge, LSE; India: IITs, IIM A/B/C, BITS Pilani, Delhi University
+            St. Stephen's, Hindu College) or elite graduate (MBA at Harvard, Stanford, Wharton,
+            Kellogg, Booth, MIT Sloan, INSEAD, IIM A/B/C)
+          - Tier 2 (score 6.5-8.4): Strong undergrad (US Top 30, UC Berkeley, Michigan; India:
+            top NITs, SRCC, XLRI, ISB Hyderabad) or good graduate programs (MBA top 20,
+            professional certs CA/CFA/FRM)
+          - Tier 3 (score 4-6.4): Regional universities with decent reputation
 
-          Score adjustments: Nudge upward within tier for honors, distinctions, scholarships,
-          high grades, academic leadership, publications, or degrees in business/economics/
-          engineering/medicine/science.
+          MBA boost: If candidate has an MBA, multiply score by 1.10 and cap at 10.
+          Include "education_tier": "Tier 1", "Tier 2", "Tier 3", or "None"
 
-          MBA boost: If candidate has an MBA, multiply the education score by 1.10 and cap at 10.
-
-          Include "education_tier": "Tier 1", "Tier 2", "Tier 3", or "None" in your response.
-
-      - name: "founder_experience"
-        label: "Former Founder Experience"
-        weight: "high"
+      - name: "track_a_lp_fundraising"
+        label: "LP/Fundraising/Capital Markets"
+        weight: "track_a_20"
         description: |
-          Look for titles containing "Founder", "Co-founder", "Co Founder", "Cofounder", or
-          "Founding [Role]" in experience, headline, or summary.
+          FOR TRACK A CANDIDATES ONLY (skip if Track B).
 
-          Score higher for venture-backed technology startups that mention raising capital,
-          acquisitions, or successful exits.
+          Score based on specific experience with:
+          - Raising a fund or managing LP relationships
+          - Private placements or capital development
+          - Structuring investment vehicles
+          - Direct engagement with institutional investors
 
-          Negative signals for companies that appear to be solo consulting, advisory, or
-          boutique services businesses.
+          Score 8-10: Direct LP relationship management or fund fundraising experience
+          Score 6-8: Supporting role in fundraising, capital markets exposure
+          Score 4-6: General understanding but no direct experience
+          Score below 4: No relevant experience
 
-          Include "is_founder": true/false in your response.
-          Include "career_summary": "<one sentence career summary>" in your response.
-
-      - name: "healthcare_experience"
+      - name: "track_a_healthcare"
         label: "Healthcare Experience"
-        weight: "low"
+        weight: "track_a_10"
         description: |
-          Use a tiered scoring system:
-          - Tier 1 (score 8.5-10): Operating healthcare companies and direct care including
-            digital health/health tech, healthcare services or health systems, clinical roles
-            with business/innovation experience, healthcare venture building. Extra weight for
-            Redesign Health focus areas: value-based care, workforce optimization, patient
-            experience, health equity, aging/senior care, healthcare data and interoperability
-          - Tier 2 (score 6.5-8.4): Healthcare investment and advisory including healthcare-focused
-            VC or PE, healthcare investment banking, healthcare management consulting (McKinsey
-            Health, BCG Healthcare), healthcare policy, healthcare research with commercial
-            applications
-          - Tier 3 (score 4-6.4): Adjacent healthcare exposure including life sciences in
-            non-clinical roles, healthcare IT without deep domain knowledge, academic medicine
-            without innovation focus, healthcare supply chain, health insurance operations in
-            non-strategic roles
-          - Negative signals (score below 4): No healthcare experience, only theoretical or
-            academic healthcare knowledge, healthcare experience limited to personal circumstances,
-            pharma or medical device sales without strategic exposure
+          FOR TRACK A CANDIDATES ONLY (skip if Track B).
+
+          Score based on healthcare sector exposure:
+          - Tier 1 (8-10): Healthcare-focused investing, healthcare IB, healthcare consulting
+          - Tier 2 (5-7): Some healthcare deals or projects
+          - Below 5: No meaningful healthcare exposure
+
+      - name: "track_a_founder"
+        label: "Founder Experience"
+        weight: "track_a_5"
+        description: |
+          FOR TRACK A CANDIDATES ONLY (skip if Track B).
+
+          Nice to have but NOT expected for this track. Do NOT penalize Track A candidates
+          for lacking founder experience.
+
+          Score 8-10: Has meaningful founder experience (bonus)
+          Score 5: No founder experience (neutral, not a penalty)
+
+      # TRACK B DIMENSIONS (Founder/Operator) - weights sum to 100%
+      - name: "track_b_founder_quality"
+        label: "Founder Experience & Quality"
+        weight: "track_b_35"
+        description: |
+          FOR TRACK B CANDIDATES ONLY (skip if Track A).
+
+          Evaluate founder experience quality:
+          - Score 9-10: Venture-backed startup with significant capital raised ($1M+),
+            evidence of successful exit, acquisition, or strong traction
+          - Score 7-8: Venture-backed startup with meaningful capital raised, clear GTM execution
+          - Score 5-6: Founded a real company but limited scale or bootstrapped only
+          - Score 3-4: "Founder" of consulting/advisory firm or lifestyle business
+          - Score below 3: No real founder experience or misrepresenting advisory as startup
+
+          PENALIZE: Solo consulting, advisory firms, or boutique services masquerading as startups
+          Include "is_founder": true/false
+
+      - name: "track_b_gtm_commercial"
+        label: "Commercial & GTM Track Record"
+        weight: "track_b_25"
+        description: |
+          FOR TRACK B CANDIDATES ONLY (skip if Track A).
+
+          Evidence of go-to-market execution:
+          - Revenue generation and growth
+          - Customer acquisition at scale
+          - Partnership development
+          - Market building or category creation
+          - Sales leadership
+
+          Score 8-10: Clear evidence of driving significant revenue/growth
+          Score 5-7: Some commercial responsibility but limited scale
+          Score below 5: No clear GTM track record
+
+      - name: "track_b_fundraising"
+        label: "Fundraising (Founder Side)"
+        weight: "track_b_20"
+        description: |
+          FOR TRACK B CANDIDATES ONLY (skip if Track A).
+
+          Experience raising capital as a founder:
+          - Score 9-10: Raised Series A+ from institutional investors
+          - Score 7-8: Raised seed round from notable angels/funds
+          - Score 5-6: Raised friends & family or small angel round
+          - Score 3-4: Attempted fundraising but unsuccessful
+          - Score below 3: No fundraising experience
+
+      - name: "track_b_education"
+        label: "Educational Background"
+        weight: "track_b_15"
+        description: |
+          FOR TRACK B CANDIDATES ONLY (skip if Track A).
+
+          Use same tier system as Track A but with LOWER weight.
+          Do NOT heavily penalize Track B candidates for non-elite education
+          if they have strong founder credentials.
+
+          Include "education_tier": "Tier 1", "Tier 2", "Tier 3", or "None"
+
+      - name: "track_b_healthcare"
+        label: "Healthcare Experience"
+        weight: "track_b_5"
+        description: |
+          FOR TRACK B CANDIDATES ONLY (skip if Track A).
+
+          Nice to have but NOT expected for this track.
+          Score 5 (neutral) if no healthcare experience.
+
+      # ALWAYS INCLUDE
+      - name: "career_summary"
+        label: "Career Summary"
+        weight: "none"
+        description: |
+          ALWAYS INCLUDE regardless of track.
+          Include "career_summary": "<one sentence career summary>"
 
 weight_values:
   very_high: 4

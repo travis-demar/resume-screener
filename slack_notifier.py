@@ -83,16 +83,34 @@ class SlackNotifier:
         if "career_trajectory_summary" in scores:
             extra_info.append(f"*Career:* {scores['career_trajectory_summary']}")
 
-        # Director of Global Development, India role fields
+        # Director of Global Development, India role fields (dual-track)
+        if "track_used" in scores:
+            track_display = scores["track_used"]
+            if track_display.startswith("A"):
+                track_label = "Track A: Investor/Banker"
+            else:
+                track_label = "Track B: Founder/Operator"
+            if "Hybrid" in track_display:
+                track_label += " (Hybrid)"
+            extra_info.append(f"*Scoring Track:* {track_label}")
+        if "track_reasoning" in scores:
+            extra_info.append(f"*Track Reasoning:* {scores['track_reasoning']}")
         if "work_experience_tier" in scores:
             extra_info.append(f"*Work Experience Tier:* {scores['work_experience_tier']}")
         if "education_tier" in scores:
             extra_info.append(f"*Education Tier:* {scores['education_tier']}")
-        if "is_founder" in scores:
+        if "is_founder" in scores and "track_used" not in scores:
+            # Only show founder status if not already shown via track
+            founder_status = "Yes" if scores["is_founder"] else "No"
+            extra_info.append(f"*Former Founder:* {founder_status}")
+        elif "is_founder" in scores and scores.get("track_used", "").startswith("B"):
+            # Show founder status for Track B
             founder_status = "Yes" if scores["is_founder"] else "No"
             extra_info.append(f"*Former Founder:* {founder_status}")
         if "career_summary" in scores:
             extra_info.append(f"*Career:* {scores['career_summary']}")
+        if scores.get("insufficient_data"):
+            extra_info.append(f"*Note:* {scores.get('data_note', 'Limited profile data')}")
 
         blocks = [
             {

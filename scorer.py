@@ -68,8 +68,104 @@ class ResumeScorer:
 
         return None
 
+    def _build_dual_track_prompt(self, resume_text: str, job_title: str, candidate_name: str, role_config: dict) -> str:
+        """Build the scoring prompt for dual-track roles."""
+        criteria = role_config.get("criteria", [])
+        role_title = role_config.get("job_title", job_title)
+
+        # Build criteria descriptions grouped by track
+        classification_criteria = None
+        track_a_criteria = []
+        track_b_criteria = []
+        other_criteria = []
+
+        for criterion in criteria:
+            weight = criterion.get("weight", "")
+            if criterion["name"] == "profile_classification":
+                classification_criteria = criterion
+            elif weight.startswith("track_a_"):
+                track_a_criteria.append(criterion)
+            elif weight.startswith("track_b_"):
+                track_b_criteria.append(criterion)
+            elif weight != "none":
+                other_criteria.append(criterion)
+
+        prompt = f"""You are an expert recruiter evaluating a candidate for the role: {role_title}
+
+Candidate Name: {candidate_name}
+Applied for: {job_title}
+
+RESUME/PROFILE:
+{resume_text}
+
+=== DUAL-TRACK SCORING SYSTEM ===
+
+STEP 1 - PROFILE CLASSIFICATION:
+{classification_criteria["description"] if classification_criteria else "Classify as Track A (Investor/Banker) or Track B (Founder/Operator)"}
+
+STEP 2 - SCORE ON THE APPROPRIATE TRACK:
+
+--- TRACK A: Investor/Banker (use these dimensions if Track A or Hybrid) ---
+"""
+        for i, c in enumerate(track_a_criteria, 1):
+            weight_pct = c["weight"].replace("track_a_", "") + "%"
+            prompt += f"\n{i}. **{c['label']}** (Weight: {weight_pct})\n{c['description']}\n"
+
+        prompt += """
+--- TRACK B: Founder/Operator (use these dimensions if Track B or Hybrid) ---
+"""
+        for i, c in enumerate(track_b_criteria, 1):
+            weight_pct = c["weight"].replace("track_b_", "") + "%"
+            prompt += f"\n{i}. **{c['label']}** (Weight: {weight_pct})\n{c['description']}\n"
+
+        prompt += """
+STEP 3 - SCORING RULES:
+- Do NOT penalize Track A candidates for lacking founder experience
+- Do NOT penalize Track B candidates for lacking traditional VC or banking pedigree
+- If Hybrid, score on BOTH tracks and report both scores - we will use the higher one
+- If insufficient data, set "insufficient_data": true and explain what's missing
+
+Respond with ONLY a JSON object. Include ALL of these fields:
+{
+    "track": "A" or "B" or "Hybrid",
+    "track_reasoning": "<one sentence explaining track choice>",
+    "insufficient_data": true/false,
+    "data_note": "<explanation if insufficient_data is true, omit if false>",
+"""
+
+        # Add Track A fields
+        prompt += "\n    // Track A scores (include if Track A or Hybrid):\n"
+        for c in track_a_criteria:
+            prompt += f'    "{c["name"]}": <score 1-10 or null if not applicable>,\n'
+
+        # Add Track B fields
+        prompt += "\n    // Track B scores (include if Track B or Hybrid):\n"
+        for c in track_b_criteria:
+            prompt += f'    "{c["name"]}": <score 1-10 or null if not applicable>,\n'
+
+        prompt += """
+    // Always include:
+    "work_experience_tier": "Tier 1", "Tier 2", "Tier 3", "Tier 4", or "None",
+    "education_tier": "Tier 1", "Tier 2", "Tier 3", or "None",
+    "is_founder": true/false,
+    "career_summary": "<one sentence career summary>",
+    "fit_summary": "<one sentence on why they are or aren't a fit for this role>"
+}
+
+SCORING GUIDANCE:
+- Be rigorous and calibrated. A score of 7+ should indicate strong qualification.
+- Most candidates should score between 4-7. Reserve 8-10 for exceptional matches.
+- Score each dimension honestly based on the track requirements.
+- If profile data is very limited, flag insufficient_data rather than guessing low scores."""
+
+        return prompt
+
     def _build_prompt(self, resume_text: str, job_title: str, candidate_name: str, role_config: dict) -> str:
         """Build the scoring prompt from config criteria."""
+        # Check for dual-track roles
+        if role_config.get("dual_track"):
+            return self._build_dual_track_prompt(resume_text, job_title, candidate_name, role_config)
+
         criteria = role_config.get("criteria", [])
         role_title = role_config.get("job_title", job_title)
 
@@ -133,8 +229,55 @@ SCORING GUIDANCE:
 
         return prompt
 
+    def _calculate_dual_track_score(self, scores: dict, role_config: dict) -> tuple:
+        """Calculate weighted score for dual-track roles. Returns (score, track_used)."""
+        criteria = role_config.get("criteria", [])
+        track = scores.get("track", "A")
+
+        def calc_track_score(track_prefix: str) -> float:
+            total_weight = 0
+            weighted_sum = 0
+
+            for criterion in criteria:
+                weight_str = criterion.get("weight", "")
+                if not weight_str.startswith(track_prefix):
+                    continue
+
+                # Extract percentage from weight like "track_a_40" -> 40
+                try:
+                    weight = int(weight_str.replace(track_prefix, ""))
+                except ValueError:
+                    continue
+
+                name = criterion["name"]
+                if name in scores and isinstance(scores[name], (int, float)):
+                    weighted_sum += scores[name] * weight
+                    total_weight += weight
+
+            if total_weight == 0:
+                return 0
+            return round(weighted_sum / total_weight, 1)
+
+        if track == "Hybrid":
+            # Score both tracks and use the higher one
+            track_a_score = calc_track_score("track_a_")
+            track_b_score = calc_track_score("track_b_")
+            if track_a_score >= track_b_score:
+                return (track_a_score, "A (Hybrid - higher score)")
+            else:
+                return (track_b_score, "B (Hybrid - higher score)")
+        elif track == "B":
+            return (calc_track_score("track_b_"), "B")
+        else:
+            return (calc_track_score("track_a_"), "A")
+
     def _calculate_weighted_score(self, scores: dict, role_config: dict) -> float:
         """Calculate weighted overall score."""
+        # Handle dual-track roles separately
+        if role_config.get("dual_track"):
+            score, _ = self._calculate_dual_track_score(scores, role_config)
+            return score
+
         criteria = role_config.get("criteria", [])
         total_weight = 0
         weighted_sum = 0
@@ -207,7 +350,20 @@ SCORING GUIDANCE:
             scores = json.loads(response_text)
 
             # Calculate weighted total score
-            base_score = self._calculate_weighted_score(scores, role_config)
+            if role_config.get("dual_track"):
+                base_score, track_used = self._calculate_dual_track_score(scores, role_config)
+                scores["track_used"] = track_used
+                # Build criteria labels only for the track that was used
+                track_prefix = "track_a_" if track_used.startswith("A") else "track_b_"
+                scores["criteria_labels"] = {
+                    c["name"]: c["label"]
+                    for c in criteria
+                    if c.get("weight", "").startswith(track_prefix)
+                }
+            else:
+                base_score = self._calculate_weighted_score(scores, role_config)
+                # Add criteria labels for display
+                scores["criteria_labels"] = {c["name"]: c["label"] for c in criteria}
 
             # Apply founder boost if applicable
             founder_boost = role_config.get("founder_boost", 0)
@@ -219,9 +375,6 @@ SCORING GUIDANCE:
             else:
                 scores["total_score"] = base_score
                 scores["founder_boost_applied"] = False
-
-            # Add criteria labels for display
-            scores["criteria_labels"] = {c["name"]: c["label"] for c in criteria}
 
             return scores
 
