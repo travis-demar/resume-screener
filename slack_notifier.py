@@ -112,6 +112,10 @@ class SlackNotifier:
         if scores.get("insufficient_data"):
             extra_info.append(f"*Note:* {scores.get('data_note', 'Limited profile data')}")
 
+        # MD Ventures India role fields
+        if "location_signal" in scores:
+            extra_info.append(f"*Location Signal:* {scores['location_signal']}")
+
         blocks = [
             {
                 "type": "header",

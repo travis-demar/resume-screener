@@ -271,12 +271,43 @@ SCORING GUIDANCE:
         else:
             return (calc_track_score("track_a_"), "A")
 
+    def _calculate_percentage_weighted_score(self, scores: dict, role_config: dict) -> float:
+        """Calculate weighted score using explicit percentage weights (pct_XX format)."""
+        criteria = role_config.get("criteria", [])
+        total_weight = 0
+        weighted_sum = 0
+
+        for criterion in criteria:
+            weight_str = criterion.get("weight", "")
+            if not weight_str.startswith("pct_"):
+                continue
+
+            # Extract percentage from weight like "pct_40" -> 40
+            try:
+                weight = int(weight_str.replace("pct_", ""))
+            except ValueError:
+                continue
+
+            name = criterion["name"]
+            if name in scores and isinstance(scores[name], (int, float)):
+                weighted_sum += scores[name] * weight
+                total_weight += weight
+
+        if total_weight == 0:
+            return 0
+
+        return round(weighted_sum / total_weight, 1)
+
     def _calculate_weighted_score(self, scores: dict, role_config: dict) -> float:
         """Calculate weighted overall score."""
         # Handle dual-track roles separately
         if role_config.get("dual_track"):
             score, _ = self._calculate_dual_track_score(scores, role_config)
             return score
+
+        # Handle percentage-weighted roles
+        if role_config.get("percentage_weights"):
+            return self._calculate_percentage_weighted_score(scores, role_config)
 
         criteria = role_config.get("criteria", [])
         total_weight = 0

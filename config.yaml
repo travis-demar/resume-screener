@@ -377,6 +377,127 @@ roles:
           ALWAYS INCLUDE regardless of track.
           Include "career_summary": "<one sentence career summary>"
 
+  # Role 5: Managing Director of Ventures, India
+  - job_id: "d72d8750-c143-4889-94f2-02448d33c43c"
+    job_title: "Managing Director of Ventures, India"
+    threshold: 7.5
+    founder_boost: 0.05  # 5% boost if candidate is a founder
+    percentage_weights: true  # Use explicit percentage weights
+
+    criteria:
+      - name: "venture_experience"
+        label: "Venture Experience"
+        weight: "pct_40"
+        description: |
+          Tier 1 (score 8.2-10): Top-tier global or India VC firms: Sequoia, a16z, Accel,
+          Lightspeed, Insight Partners, Bessemer, Matrix Partners, Norwest Ventures, A91,
+          Z47, Blume Ventures, Elevation Capital, Peak XV, Nexus, Chiratae, Eight Roads,
+          or equivalent.
+
+          Tier 2 (score 7.1-8.1): Strong India-based venture firms or top-tier global
+          investment firms: Healthquad, W Health, Endiya, B Capital, Stride, Huddle,
+          Antler, or equivalent.
+
+          Tier 3 (score 4-7): General consulting, banking, or PE: Big 4 consulting,
+          internal consulting at large corporations, business analyst roles, corporate
+          development.
+
+          Below 4: No venture experience, only corporate strategy without external firm
+          experience, academic/research only.
+
+          CRITICAL RULE: If the candidate's background is in a non-investing function
+          (talent, marketing, operations, HR, recruiting) — score below 4 regardless
+          of firm prestige.
+
+          Include "venture_tier": "Tier 1", "Tier 2", "Tier 3", or "Below" in your response.
+
+      - name: "career_trajectory"
+        label: "Career Trajectory"
+        weight: "pct_25"
+        description: |
+          Evaluate speed of career progression and upward mobility.
+
+          Positive signals:
+          - Rapid advancement and progressive responsibility
+          - At least one promotion at the same company
+          - Transitions showing intentionality and learning velocity
+          - Examples: Associate → VP → Principal → Director → MD
+
+          Negative signals:
+          - Lateral moves without upward momentum
+          - Career stagnation
+          - Long stints (5+ years) at large corporations without advancement
+          - Same role for 6+ years
+          - Candidates with 25+ years of experience (may be overqualified)
+
+          Include "career_trajectory_summary": "<one sentence summary>" in your response.
+
+      - name: "educational_background"
+        label: "Educational Background"
+        weight: "pct_15"
+        description: |
+          Tier 1 (score 8.5-10): Ivy League, Stanford, MIT, Caltech, Oxford, Cambridge,
+          LSE, IITs, IIM A/B/C, BITS Pilani, Delhi University St. Stephen's, Hindu College.
+          OR elite graduate: MBA at HBS, Stanford, Wharton, Kellogg, Booth, MIT Sloan,
+          INSEAD, IIM A/B/C; PhD at top research universities; MD at prestigious
+          medical schools.
+
+          Tier 2 (score 6.5-8.4): US Top 30, UC Berkeley, Michigan, Virginia, or MBA
+          top 20, strong regional programs, reputable Master's programs.
+
+          Tier 3 (score 4-6.4): Regional/local universities with decent reputation,
+          recognized private institutions.
+
+          Below 4: Unaccredited institutions, unexplained incomplete degrees,
+          certificates or extension programs only.
+
+          Include "education_tier": "Tier 1", "Tier 2", "Tier 3", or "Below" in your response.
+
+      - name: "healthcare_experience"
+        label: "Healthcare Experience"
+        weight: "pct_10"
+        description: |
+          Deep knowledge across care delivery, health tech, or healthcare services.
+          Prior healthcare experience is a HARD REQUIREMENT — score below 4 if
+          entirely absent.
+
+          India healthcare market knowledge is a positive signal — score higher if
+          candidate has experience with Indian healthcare systems, health tech
+          startups, or emerging market healthcare dynamics.
+
+          Score 8-10: Deep healthcare investing or operating experience
+          Score 6-8: Healthcare sector exposure through deals or advisory
+          Score 4-6: Some healthcare adjacent experience
+          Below 4: No healthcare experience (hard penalty)
+
+      - name: "ai_tech_fluency"
+        label: "AI & Tech Fluency"
+        weight: "pct_10"
+        description: |
+          Score 7+ ONLY if there is explicit evidence of AI systems-building or
+          workflow automation beyond basic LLM usage. Has built systems or
+          workflows using AI. Treats AI as a core part of their analytical process.
+
+          Score 8-10: Built AI-powered systems, automation workflows, or tools
+          Score 6-7: Active user of AI tools with evidence of sophisticated usage
+          Score 4-6: Basic AI/LLM usage mentioned
+          Below 4: No evidence of AI fluency
+
+          Also check if the candidate is a former founder or co-founder of a startup.
+          Include "is_founder": true/false in your response.
+
+      - name: "location_signal"
+        label: "Location Signal"
+        weight: "none"
+        description: |
+          Determine the candidate's location and India connection.
+          Include "location_signal": "India-based", "India experience", or "No India signal"
+          in your response.
+
+          India-based: Currently living/working in India
+          India experience: Has worked in India previously or has strong India ties
+          No India signal: No apparent India connection
+
 weight_values:
   very_high: 4
   critical: 5
